@@ -165,6 +165,7 @@
         }
     },
 
+    // 총알 발사음: 볼륨을 절반으로 줄임
     playShoot: function() {
         if (!this.ctx) return;
         const t = this.ctx.currentTime;
@@ -178,17 +179,21 @@
         osc.frequency.setValueAtTime(880, t);
         osc.frequency.exponentialRampToValueAtTime(110, t + 0.15);
 
-        gain.gain.setValueAtTime(0.05, t);
+        // 기존 0.05에서 0.025로 수정 (볼륨 50%)
+        gain.gain.setValueAtTime(0.025, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
 
         osc.start(t);
         osc.stop(t + 0.15);
     },
 
+    // 폭발음: 묵직한 타격감 추가
     playExplosion: function() {
         if (!this.ctx) return;
         const t = this.ctx.currentTime;
-        const bufferSize = this.ctx.sampleRate * 0.3;
+        
+        // 1. 노이즈 (기존 폭발음 - 고음역 파열음)
+        const bufferSize = this.ctx.sampleRate * 0.4; // 길이 약간 증가
         const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
         const data = buffer.getChannelData(0);
 
@@ -199,22 +204,38 @@
         const noise = this.ctx.createBufferSource();
         noise.buffer = buffer;
         
-        const filter = this.ctx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(1000, t);
-        filter.frequency.linearRampToValueAtTime(100, t + 0.3);
+        const noiseFilter = this.ctx.createBiquadFilter();
+        noiseFilter.type = 'lowpass';
+        noiseFilter.frequency.setValueAtTime(1000, t);
+        noiseFilter.frequency.exponentialRampToValueAtTime(50, t + 0.3); // 필터가 더 빠르게 닫힘
 
-        const gain = this.ctx.createGain();
-        
-        noise.connect(filter);
-        filter.connect(gain);
-        gain.connect(this.ctx.destination);
+        const noiseGain = this.ctx.createGain();
+        noise.connect(noiseFilter);
+        noiseFilter.connect(noiseGain);
+        noiseGain.connect(this.ctx.destination);
 
-        gain.gain.setValueAtTime(0.2, t);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+        noiseGain.gain.setValueAtTime(0.3, t); // 볼륨 살짝 증가
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
 
         noise.start(t);
-        noise.stop(t + 0.3);
+        noise.stop(t + 0.4);
+
+        // 2. 킥/저음 (새로 추가 - 묵직한 폭발 느낌)
+        const osc = this.ctx.createOscillator();
+        const oscGain = this.ctx.createGain();
+        
+        osc.connect(oscGain);
+        oscGain.connect(this.ctx.destination);
+
+        osc.type = 'triangle'; // 둥근 저음
+        osc.frequency.setValueAtTime(150, t); // 150Hz에서 시작
+        osc.frequency.exponentialRampToValueAtTime(40, t + 0.3); // 40Hz로 떨어짐 (쿵!)
+
+        oscGain.gain.setValueAtTime(0.5, t);
+        oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+
+        osc.start(t);
+        osc.stop(t + 0.4);
     },
 
     playStart: function() {
@@ -255,7 +276,7 @@ let gameState = {
     running: false,
     score: 0,
     highScore: 20000,
-    lives: 3, 
+    lives: 5, // 초기 비행기 대수 5대로 설정
     level: 1,
     frames: 0
 };
@@ -652,7 +673,7 @@ function initGame() {
     }
     
     gameState.score = 0;
-    gameState.lives = 3;
+    gameState.lives = 5; // 초기화 시 5대
     gameState.level = 1;
     gameState.frames = 0;
     
@@ -806,11 +827,11 @@ function gameLoop() {
         if (p.life <= 0) particles.splice(index, 1);
     });
 
-    // UI Lives
+    // UI Lives (하단 여백 30px 추가하여 50px로 조정)
     for(let i=0; i<gameState.lives-1; i++) {
         ctx.fillStyle = "#eee";
         let lx = 10 + i * 25;
-        let ly = canvas.height - 20;
+        let ly = canvas.height - 50; // 기존 20에서 50으로 변경 (30만큼 위로)
         ctx.beginPath();
         ctx.moveTo(lx, ly);
         ctx.lineTo(lx+10, ly-10);
