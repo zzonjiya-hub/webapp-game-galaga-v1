@@ -627,9 +627,9 @@ class EnemyBullet {
         this.y = y;
         this.width = 10;
         this.height = 10;
-        // **수정됨**: 레벨 1~10 난이도 곡선 조절
-        // L1: 3.2, L10: 5.0 (점진적 증가)
-        this.speed = 3.0 + (gameState.level * 0.2); 
+        // **수정됨**: 적 탄속 2배 증가 (난이도 상승)
+        // 기존: 3.0 + (level * 0.2)
+        this.speed = 6.0 + (gameState.level * 0.4); 
         this.active = true;
     }
     
@@ -678,9 +678,9 @@ class Enemy {
             const sway = Math.sin(gameState.frames * 0.015) * swayAmount;
             this.x = this.originX + sway;
             
-            // **수정됨**: 레벨 1~10 난이도 곡선 (돌진 확률)
-            // L1: 0.0004, L10: 0.0031 (약 7~8배 증가)
-            const diveChance = 0.0001 + (gameState.level * 0.0003);
+            // **수정됨**: 돌진 확률 2배 증가 (난이도 상승)
+            // 기존: 0.0001 + (level * 0.0003)
+            const diveChance = 0.0002 + (gameState.level * 0.0006);
             if (player.visible && Math.random() < diveChance) {
                 this.startDive();
             }
@@ -693,8 +693,9 @@ class Enemy {
                  else this.vx -= 0.05;
             }
 
-            // **수정됨**: 레벨에 따른 발사 확률 증가
-            const fireChance = 0.01 + (gameState.level * 0.002);
+            // **수정됨**: 발사 확률 2배 증가 (난이도 상승)
+            // 기존: 0.01 + (level * 0.002)
+            const fireChance = 0.02 + (gameState.level * 0.004);
             if (Math.random() < fireChance && this.y < player.y - 100) {
                  enemyBullets.push(new EnemyBullet(this.x + this.width/2 - 5, this.y + this.height));
             }
