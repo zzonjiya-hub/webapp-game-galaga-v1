@@ -19,19 +19,25 @@
             overflow: hidden;
             touch-action: none; /* 터치 스크롤 방지 */
         }
+        
+        /* 게임 컨테이너: 정사각형으로 제한될 영역 */
         #game-container {
             position: relative;
-            width: 100%;
-            height: 100%;
-        }
-        canvas {
+            /* width, height는 JS에서 정사각형으로 설정됨 */
+            border: 2px solid #00ffff; /* 테두리 표시 (요청사항) */
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2); /* 약간의 네온 효과 */
             background-color: #000;
+            overflow: hidden;
+        }
+
+        canvas {
             display: block;
             image-rendering: pixelated;
             width: 100%;
             height: 100%;
             cursor: crosshair;
         }
+
         #ui-layer {
             position: absolute;
             top: 0;
@@ -43,30 +49,38 @@
             flex-direction: column;
             justify-content: space-between;
         }
+
         .header {
             padding: 20px;
             display: flex;
             justify-content: space-between;
-            font-size: 20px;
+            font-size: 16px; /* 작은 화면 고려하여 조정 */
             font-weight: bold;
             text-shadow: 2px 2px 0 #000;
             width: 100%;
             box-sizing: border-box;
+            z-index: 10;
         }
+        
+        /* 텍스트가 겹치지 않도록 레이아웃 조정 */
+        .header > div {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
         .score-box { color: #ff0000; }
         .high-score-box { color: #ffff00; }
         
-        /* 전체화면 버튼 스타일 */
         #fullscreen-btn {
             pointer-events: auto;
             background: rgba(255, 255, 255, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.5);
             color: white;
-            padding: 5px 10px;
+            padding: 5px 8px;
             cursor: pointer;
-            font-size: 20px;
+            font-size: 16px;
             border-radius: 5px;
-            margin-left: 20px;
         }
         #fullscreen-btn:hover {
             background: rgba(255, 255, 255, 0.4);
@@ -80,17 +94,19 @@
             text-align: center;
             pointer-events: auto;
             background: rgba(0, 0, 0, 0.85);
-            padding: 40px;
+            padding: 30px;
             border: 2px solid #fff;
             border-radius: 10px;
             width: 80%;
-            max-width: 400px;
+            max-width: 360px;
+            z-index: 20;
         }
+
         button.action-btn {
             background: #f00;
             color: #fff;
             border: none;
-            padding: 15px 30px;
+            padding: 12px 20px;
             font-size: 18px;
             font-family: inherit;
             cursor: pointer;
@@ -99,23 +115,16 @@
             font-weight: bold;
             width: 100%;
         }
-        button.action-btn:hover {
-            background: #d00;
-        }
-        h1 { margin-top: 0; color: #00ffff; text-shadow: 3px 3px 0 #f00; font-size: 32px;}
-        p { font-size: 14px; color: #ccc; line-height: 1.6; }
+        button.action-btn:hover { background: #d00; }
+        
+        h1 { margin-top: 0; color: #00ffff; text-shadow: 3px 3px 0 #f00; font-size: 28px; }
+        p { font-size: 13px; color: #ccc; line-height: 1.5; }
         .hidden { display: none !important; }
         
-        /* 모바일 안내 메시지 */
-        .mobile-hint {
-            display: none;
-            color: #ffff00;
-            font-size: 12px;
-            margin-top: 10px;
-        }
-        
-        @media (hover: none) and (pointer: coarse) {
-            .mobile-hint { display: block; }
+        /* 레벨 표시 강조 */
+        .level-indicator {
+            color: #00ffff;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -127,25 +136,26 @@
         <div id="ui-layer">
             <div class="header">
                 <div>
-                    PLAYER1 <span id="score" style="color:white">00</span> <span id="current-level" style="color:#0ff">(Lv.1)</span>
+                    P1 <span id="score" style="color:white">00</span> 
+                    <span id="current-level" class="level-indicator">Lv.1</span>
                 </div>
                 <div>
-                    <span class="high-score-box">HIGH SCORE <span id="high-score" style="color:white">0</span> <span id="high-score-level" style="color:#0ff"></span></span>
+                    <span class="high-score-box">HI <span id="high-score" style="color:white">0</span></span>
                     <button id="fullscreen-btn" title="전체화면">⛶</button>
                 </div>
             </div>
             
             <div id="start-screen">
-                <h1>KSMS GALAGA V1</h1>
-                <p>PC: 방향키(↑↓←→) 이동 / SPACE 발사<br>
-                   마우스: 기체 드래그로 이동 (자동발사)<br>
-                   Mobile: 터치 드래그로 이동 (자동발사)</p>
-                <button id="start-btn" class="action-btn">INSERT COIN (START)</button>
+                <h1>KSMS GALAGA v1</h1>
+                <p>PC: 방향키 이동 / SPACE 발사<br>
+                   Touch/Mouse: 드래그 이동</p>
+                <button id="start-btn" class="action-btn">START GAME</button>
             </div>
 
             <div id="game-over-screen" class="hidden">
                 <h1 style="color:red">GAME OVER</h1>
-                <p>FINAL SCORE: <span id="final-score">0</span></p>
+                <p>FINAL: <span id="final-score">0</span></p>
+                <p>LEVEL REACHED: <span id="final-level" style="color:#0ff">1</span></p>
                 <button id="restart-btn" class="action-btn">TRY AGAIN</button>
             </div>
         </div>
@@ -168,7 +178,6 @@
         }
     },
 
-    // 총알 발사음: 볼륨을 절반으로 줄임
     playShoot: function() {
         if (!this.ctx) return;
         const t = this.ctx.currentTime;
@@ -182,7 +191,6 @@
         osc.frequency.setValueAtTime(880, t);
         osc.frequency.exponentialRampToValueAtTime(110, t + 0.15);
 
-        // 기존 0.05에서 0.025로 수정 (볼륨 50%)
         gain.gain.setValueAtTime(0.025, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
 
@@ -190,13 +198,13 @@
         osc.stop(t + 0.15);
     },
 
-    // 폭발음: 묵직한 타격감 추가
+    // 적 폭발음 (기존 유지)
     playExplosion: function() {
         if (!this.ctx) return;
         const t = this.ctx.currentTime;
         
-        // 1. 노이즈 (기존 폭발음 - 고음역 파열음)
-        const bufferSize = this.ctx.sampleRate * 0.4; // 길이 약간 증가
+        // 1. Noise
+        const bufferSize = this.ctx.sampleRate * 0.4; 
         const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
         const data = buffer.getChannelData(0);
 
@@ -210,29 +218,29 @@
         const noiseFilter = this.ctx.createBiquadFilter();
         noiseFilter.type = 'lowpass';
         noiseFilter.frequency.setValueAtTime(1000, t);
-        noiseFilter.frequency.exponentialRampToValueAtTime(50, t + 0.3); // 필터가 더 빠르게 닫힘
+        noiseFilter.frequency.exponentialRampToValueAtTime(50, t + 0.3); 
 
         const noiseGain = this.ctx.createGain();
         noise.connect(noiseFilter);
         noiseFilter.connect(noiseGain);
         noiseGain.connect(this.ctx.destination);
 
-        noiseGain.gain.setValueAtTime(0.3, t); // 볼륨 살짝 증가
+        noiseGain.gain.setValueAtTime(0.3, t);
         noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
 
         noise.start(t);
         noise.stop(t + 0.4);
 
-        // 2. 킥/저음 (새로 추가 - 묵직한 폭발 느낌)
+        // 2. Kick
         const osc = this.ctx.createOscillator();
         const oscGain = this.ctx.createGain();
         
         osc.connect(oscGain);
         oscGain.connect(this.ctx.destination);
 
-        osc.type = 'triangle'; // 둥근 저음
-        osc.frequency.setValueAtTime(150, t); // 150Hz에서 시작
-        osc.frequency.exponentialRampToValueAtTime(40, t + 0.3); // 40Hz로 떨어짐 (쿵!)
+        osc.type = 'triangle'; 
+        osc.frequency.setValueAtTime(150, t); 
+        osc.frequency.exponentialRampToValueAtTime(40, t + 0.3); 
 
         oscGain.gain.setValueAtTime(0.5, t);
         oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
@@ -241,6 +249,56 @@
         osc.stop(t + 0.4);
     },
 
+    // 플레이어 전용 웅장한 폭발음
+    playPlayerExplosion: function() {
+        if (!this.ctx) return;
+        const t = this.ctx.currentTime;
+
+        // 1. Heavy Sub-bass Boom (더 거칠고 깊은 저음)
+        const osc = this.ctx.createOscillator();
+        const oscGain = this.ctx.createGain();
+        osc.connect(oscGain);
+        oscGain.connect(this.ctx.destination);
+
+        osc.type = 'sawtooth'; // 톱니파로 더 거친 소리 구현
+        osc.frequency.setValueAtTime(200, t);
+        osc.frequency.exponentialRampToValueAtTime(10, t + 1.2); // 아주 낮게 떨어짐
+
+        oscGain.gain.setValueAtTime(0.8, t); // 볼륨 증가
+        oscGain.gain.exponentialRampToValueAtTime(0.01, t + 1.0); // 긴 여운
+
+        osc.start(t);
+        osc.stop(t + 1.2);
+
+        // 2. Big Explosion Noise (더 크고 넓은 파열음)
+        const bufferSize = this.ctx.sampleRate * 1.5; // 1.5초 길이
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+        
+        const noiseFilter = this.ctx.createBiquadFilter();
+        noiseFilter.type = 'lowpass';
+        noiseFilter.frequency.setValueAtTime(3000, t); // 고음역대에서 시작해 타격감 상승
+        noiseFilter.frequency.exponentialRampToValueAtTime(50, t + 1.0);
+
+        const noiseGain = this.ctx.createGain();
+        noise.connect(noiseFilter);
+        noiseFilter.connect(noiseGain);
+        noiseGain.connect(this.ctx.destination);
+
+        noiseGain.gain.setValueAtTime(1.0, t); // 최대 볼륨
+        noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 1.0);
+
+        noise.start(t);
+        noise.stop(t + 1.2);
+    },
+
+    // 게임 시작음 (누락된 부분 복구)
     playStart: function() {
         if (!this.ctx) return;
         const t = this.ctx.currentTime;
@@ -266,28 +324,27 @@
 /**
  * Game Constants & Setup
  */
+const gameContainer = document.getElementById('game-container');
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreEl = document.getElementById('score');
 const highScoreEl = document.getElementById('high-score');
 const currentLevelEl = document.getElementById('current-level');
-const highScoreLevelEl = document.getElementById('high-score-level');
 const startScreen = document.getElementById('start-screen');
 const gameOverScreen = document.getElementById('game-over-screen');
 const finalScoreEl = document.getElementById('final-score');
+const finalLevelEl = document.getElementById('final-level');
 const fullscreenBtn = document.getElementById('fullscreen-btn');
 
 let gameState = {
     running: false,
     score: 0,
     highScore: 0,
-    highScoreLevel: 0,  // 하이스코어를 달성한 레벨
-    lives: 5, // 초기 비행기 대수 5대로 설정
+    lives: 3, 
     level: 1,
     frames: 0
 };
 
-// 키보드 상태 - 상하좌우 모두 추가
 const keys = {
     ArrowLeft: false,
     ArrowRight: false,
@@ -296,9 +353,8 @@ const keys = {
     Space: false
 };
 
-// 드래그 상태 (마우스 & 터치 공통)
 let isDragging = false;
-let dragOffsetX = 0;  // 드래그 시작 시 우주선과 터치/마우스 위치 간의 오프셋
+let dragOffsetX = 0; 
 let dragOffsetY = 0;
 
 let player;
@@ -320,17 +376,26 @@ function rectCollision(rect1, rect2) {
     );
 }
 
+// **수정됨**: 브라우저 화면에서 가장 큰 정사각형 계산 및 적용
 function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    // 너비와 높이 중 작은 값을 선택하여 정사각형 크기 결정
+    const size = Math.min(window.innerWidth, window.innerHeight);
+    
+    // 캔버스 해상도 설정
+    canvas.width = size;
+    canvas.height = size;
+    
+    // 컨테이너 크기 설정 (CSS)
+    gameContainer.style.width = `${size}px`;
+    gameContainer.style.height = `${size}px`;
+    
     ctx.imageSmoothingEnabled = false;
 }
 
-// 전체화면 토글 함수
 function toggleFullScreen() {
     if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen().catch(err => {
-            console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+            console.log(`Error attempting to enable full-screen mode: ${err.message}`);
         });
     } else {
         if (document.exitFullscreen) {
@@ -339,7 +404,6 @@ function toggleFullScreen() {
     }
 }
 
-// 캔버스 좌표 변환 함수
 function getCanvasCoords(clientX, clientY) {
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
@@ -350,10 +414,10 @@ function getCanvasCoords(clientX, clientY) {
     };
 }
 
+// 화면 크기가 변할 때마다 재계산
 window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
+resizeCanvas(); // 초기 실행
 
-// 전체화면 버튼 리스너
 fullscreenBtn.addEventListener('click', toggleFullScreen);
 
 /**
@@ -412,24 +476,21 @@ class Particle {
 
 class Player {
     constructor() {
-        this.width = 60;
-        this.height = 60;
+        this.width = 46; // 고정 크기로 복원 (이전 40 -> 46)
+        this.height = 46;
         this.x = canvas.width / 2 - this.width / 2;
-        // 초기 위치: 화면 아래에서 30px 여백 (하단 여백과 동일)
-        this.y = canvas.height - this.height - 30; 
+        this.y = canvas.height - this.height - 20; 
         
         this.speed = 5;
         this.cooldown = 0;
         this.invulnerable = 0;
         this.visible = true;
         
-        // 이동 범위 설정값 (픽셀 단위)
-        this.topLimit = 0.4;      // 화면 상단 40% 지점까지 이동 가능
-        this.bottomMargin = 30;   // 화면 하단 여백 30px
-        this.sideMargin = 10;     // 좌우 여백 10px
+        this.topLimit = 0.4;
+        this.bottomMargin = 20;
+        this.sideMargin = 5;
     }
     
-    // 동적으로 경계값 계산 (전체화면 전환에도 대응)
     getMinY() { return canvas.height * this.topLimit; }
     getMaxY() { return canvas.height - this.height - this.bottomMargin; }
     getMinX() { return this.sideMargin; }
@@ -438,25 +499,21 @@ class Player {
     update() {
         if (!this.visible) return;
         
-        // 동적으로 경계값 계산
         const minY = this.getMinY();
         const maxY = this.getMaxY();
         const minX = this.getMinX();
         const maxX = this.getMaxX();
 
-        // 키보드 이동 - 상하좌우 모두 처리
         if (keys.ArrowLeft && this.x > minX) this.x -= this.speed;
         if (keys.ArrowRight && this.x < maxX) this.x += this.speed;
         if (keys.ArrowUp && this.y > minY) this.y -= this.speed;
         if (keys.ArrowDown && this.y < maxY) this.y += this.speed;
         
-        // 경계 보정 (화면 크기 변경 시 우주선이 범위 밖에 있을 수 있음)
         if (this.x < minX) this.x = minX;
         if (this.x > maxX) this.x = maxX;
         if (this.y < minY) this.y = minY;
         if (this.y > maxY) this.y = maxY;
 
-        // 드래그 시 발사 또는 스페이스바 발사
         if ((keys.Space || isDragging) && this.cooldown <= 0) {
             bullets.push(new Bullet(this.x + this.width / 2 - 3, this.y));
             this.cooldown = 10;
@@ -472,7 +529,9 @@ class Player {
 
         ctx.save();
         ctx.translate(this.x, this.y);
-        ctx.scale(2, 2);
+        // 기체 크기 조정에 따른 스케일 조정 (40px 기준)
+        const scale = this.width / 30; // 원래 30px 기준 디자인이라 가정
+        ctx.scale(scale, scale);
         
         ctx.fillStyle = "#eee";
         ctx.beginPath();
@@ -499,18 +558,18 @@ class Player {
     
     explode() {
         createExplosion(this.x + this.width/2, this.y + this.height/2, "#fff");
-        SoundManager.playExplosion();
+        // **수정됨**: 플레이어 전용 폭발음 호출
+        SoundManager.playPlayerExplosion();
         this.visible = false;
         this.invulnerable = 180;
         
-        // 드래그 상태 초기화
         isDragging = false; 
         
         setTimeout(() => {
             gameState.lives--;
             if(gameState.lives > 0) {
                 this.x = canvas.width / 2 - this.width / 2;
-                this.y = this.getMaxY(); // 동적으로 계산된 초기 Y 위치로 복귀
+                this.y = this.getMaxY();
                 this.visible = true;
             } else {
                 endGame();
@@ -518,18 +577,15 @@ class Player {
         }, 1000);
     }
     
-    // 드래그로 위치 이동
     setPosition(targetX, targetY) {
         this.x = targetX - this.width / 2;
         this.y = targetY - this.height / 2;
         
-        // 동적으로 경계값 계산
         const minY = this.getMinY();
         const maxY = this.getMaxY();
         const minX = this.getMinX();
         const maxX = this.getMaxX();
         
-        // 경계 체크
         if (this.x < minX) this.x = minX;
         if (this.x > maxX) this.x = maxX;
         if (this.y < minY) this.y = minY;
@@ -537,7 +593,6 @@ class Player {
     }
 }
 
-// Player Bullet
 class Bullet {
     constructor(x, y) {
         this.x = x;
@@ -561,14 +616,13 @@ class Bullet {
     }
 }
 
-// Enemy Bullet
 class EnemyBullet {
     constructor(x, y) {
         this.x = x;
         this.y = y;
-        this.width = 12;
-        this.height = 12;
-        this.speed = 2.5;
+        this.width = 10;
+        this.height = 10;
+        this.speed = 2.5 + (gameState.level * 0.1); // 레벨따라 탄속 약간 증가
         this.active = true;
     }
     
@@ -584,10 +638,8 @@ class EnemyBullet {
 
         ctx.beginPath();
         ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-        
         ctx.fillStyle = "#ff0";
         ctx.fill();
-        
         ctx.lineWidth = 2;
         ctx.strokeStyle = "#f00";
         ctx.stroke();
@@ -595,17 +647,17 @@ class EnemyBullet {
 }
 
 class Enemy {
-    constructor(x, y, type, gridX, gridY) {
+    constructor(x, y, type, gridX, gridY, size) {
         this.x = x;
         this.y = y;
         this.originX = x;
         this.originY = y;
         this.gridX = gridX;
         this.gridY = gridY;
-        this.type = type; // 0: Boss, 1: Red, 2: Blue
+        this.type = type; 
         
-        this.width = 48;
-        this.height = 48;
+        this.width = size;
+        this.height = size;
         
         this.active = true;
         this.state = 'formation';
@@ -615,10 +667,12 @@ class Enemy {
 
     update() {
         if (this.state === 'formation') {
-            const sway = Math.sin(gameState.frames * 0.015) * 60;
+            // Sway 폭을 화면 너비에 비례하게 조정
+            const swayAmount = canvas.width * 0.08; 
+            const sway = Math.sin(gameState.frames * 0.015) * swayAmount;
             this.x = this.originX + sway;
             
-            const diveChance = 0.00005 + (gameState.level * 0.00005) + (this.type * 0.00005);
+            const diveChance = 0.00005 + (gameState.level * 0.0001);
             if (player.visible && Math.random() < diveChance) {
                 this.startDive();
             }
@@ -627,35 +681,37 @@ class Enemy {
             this.y += this.vy;
             
             if (this.y < canvas.height / 2) {
-                 if (this.x < player.x) this.vx += 0.025;
-                 else this.vx -= 0.025;
+                 if (this.x < player.x) this.vx += 0.05;
+                 else this.vx -= 0.05;
             }
 
+            // 총알 발사 확률
             if (Math.random() < 0.015 && this.y < player.y - 100) {
-                 enemyBullets.push(new EnemyBullet(this.x + this.width/2 - 6, this.y + this.height));
+                 enemyBullets.push(new EnemyBullet(this.x + this.width/2 - 5, this.y + this.height));
             }
 
             if (this.y > canvas.height + 20) {
                 this.y = -60;
                 this.state = 'returning';
-                this.x = this.originX + (Math.sin(gameState.frames * 0.015) * 60);
+                this.x = this.originX; 
                 this.vx = 0;
-                this.vy = 1.5;
+                this.vy = 2;
             }
         } else if (this.state === 'returning') {
-            const targetX = this.originX + (Math.sin(gameState.frames * 0.015) * 60);
+            const swayAmount = canvas.width * 0.08;
+            const targetX = this.originX + (Math.sin(gameState.frames * 0.015) * swayAmount);
             const targetY = this.originY;
             
             const dx = targetX - this.x;
             const dy = targetY - this.y;
             const dist = Math.sqrt(dx*dx + dy*dy);
             
-            if (dist < 4) {
+            if (dist < 5) {
                 this.state = 'formation';
                 this.y = targetY;
             } else {
-                this.x += (dx / dist) * 2;
-                this.y += (dy / dist) * 2;
+                this.x += (dx / dist) * 4;
+                this.y += (dy / dist) * 4;
             }
         }
         
@@ -665,22 +721,24 @@ class Enemy {
     startDive() {
         this.state = 'diving';
         const angle = Math.atan2(player.y - this.y, player.x - this.x);
-        this.vx = Math.cos(angle) * 1.5; 
-        this.vy = Math.sin(angle) * 1.5 + 1;
+        this.vx = Math.cos(angle) * 2; 
+        this.vy = Math.sin(angle) * 2 + 1;
     }
 
     draw() {
         ctx.save();
         ctx.translate(this.x + this.width/2, this.y + this.height/2);
         
+        const scale = this.width / 24; // 원본 24px 기준 디자인
         if (this.state === 'diving') {
-            ctx.scale(2, -2);
+            ctx.scale(scale * 1.5, -scale * 1.5);
         } else {
-            ctx.scale(2, 2);
+            ctx.scale(scale * 1.5, scale * 1.5);
         }
 
         const f = this.frame; 
         
+        // Enemy drawings (same logic, scaled)
         if (this.type === 0) { // Green Boss
             ctx.fillStyle = "#0f0";
             ctx.fillRect(-6, -8, 12, 10);
@@ -738,12 +796,12 @@ function initGame() {
     }
     
     gameState.score = 0;
-    gameState.lives = 5; // 초기화 시 5대
-    gameState.level = 1;
+    gameState.lives = 3; 
+    gameState.level = 1; // 레벨 1부터 시작
     gameState.frames = 0;
     
     scoreEl.innerText = "00";
-    currentLevelEl.innerText = "(Lv.1)";
+    currentLevelEl.innerText = "Lv.1";
     
     startLevel();
     
@@ -759,22 +817,32 @@ function startLevel() {
     particles = [];
     enemies = [];
     
-    const startY = 80;
-    const gapX = 70;
-    const gapY = 60;
-    const startX = canvas.width / 2 - 350; 
+    // **수정됨**: 적 크기를 고정값으로 복원 (화면이 커져도 적이 거대해지지 않음)
+    // 단, 화면이 너무 작을 경우를 대비해 최소 비율은 유지
+    const baseSize = 36; 
+    const enemySize = Math.min(baseSize, canvas.width / 12); 
     
-    for(let i=3; i<7; i++) {
-         enemies.push(new Enemy(startX + i*gapX, startY, 0, i, 0));
+    const gapX = enemySize * 1.4; // 가로 간격 조정
+    const gapY = enemySize * 1.2; // 세로 간격 조정
+    
+    // 전체 적 그룹의 너비 계산
+    // 0~9번 인덱스(총 10마리)가 가장 넓은 열
+    const totalEnemiesWidth = (9 * gapX);
+    const startX = (canvas.width - totalEnemiesWidth) / 2;
+    const startY = canvas.height * 0.1; // 상단 10% 지점부터 시작
+    
+    // 배치 로직 (중앙 정렬됨)
+    for(let i=3; i<7; i++) { // Boss
+         enemies.push(new Enemy(startX + i*gapX, startY, 0, i, 0, enemySize));
     }
-    for(let row=1; row<3; row++) {
+    for(let row=1; row<3; row++) { // Red
         for(let i=1; i<9; i++) {
-            enemies.push(new Enemy(startX + i*gapX, startY + row*gapY, 1, i, row));
+            enemies.push(new Enemy(startX + i*gapX, startY + row*gapY, 1, i, row, enemySize));
         }
     }
-    for(let row=3; row<5; row++) {
+    for(let row=3; row<5; row++) { // Blue
         for(let i=0; i<10; i++) {
-            enemies.push(new Enemy(startX + i*gapX, startY + row*gapY, 2, i, row));
+            enemies.push(new Enemy(startX + i*gapX, startY + row*gapY, 2, i, row, enemySize));
         }
     }
 }
@@ -837,25 +905,24 @@ function checkCollisions() {
 function addScore(points) {
     gameState.score += points;
     scoreEl.innerText = gameState.score.toString().padStart(6, '0');
-    currentLevelEl.innerText = `(Lv.${gameState.level})`;
     
     if (gameState.score > gameState.highScore) {
         gameState.highScore = gameState.score;
-        gameState.highScoreLevel = gameState.level;
         highScoreEl.innerText = gameState.highScore;
-        highScoreLevelEl.innerText = `(Lv.${gameState.highScoreLevel})`;
     }
 }
 
 function endGame() {
     gameState.running = false;
     gameOverScreen.classList.remove('hidden');
-    finalScoreEl.innerText = `${gameState.score} (Lv.${gameState.level})`;
+    finalScoreEl.innerText = gameState.score;
+    finalLevelEl.innerText = gameState.level;
 }
 
 function gameLoop() {
     if (!gameState.running) return;
 
+    // 배경 클리어
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -881,10 +948,13 @@ function gameLoop() {
         if (!b.active) enemyBullets.splice(index, 1);
     });
 
+    // 레벨 클리어 체크
     if (enemies.length === 0) {
-        gameState.level++;
-        currentLevelEl.innerText = `(Lv.${gameState.level})`;
-        setTimeout(startLevel, 1000);
+        gameState.level++; // 레벨 1 증가
+        currentLevelEl.innerText = `Lv.${gameState.level}`; // UI 업데이트
+        
+        // 잠시 대기 후 다음 레벨 시작
+        setTimeout(startLevel, 1500);
     }
     
     enemies.forEach(e => {
@@ -898,11 +968,11 @@ function gameLoop() {
         if (p.life <= 0) particles.splice(index, 1);
     });
 
-    // UI Lives (하단 여백 30px 추가하여 50px로 조정)
+    // UI Lives
     for(let i=0; i<gameState.lives-1; i++) {
         ctx.fillStyle = "#eee";
         let lx = 10 + i * 25;
-        let ly = canvas.height - 50; // 기존 20에서 50으로 변경 (30만큼 위로)
+        let ly = canvas.height - 30; 
         ctx.beginPath();
         ctx.moveTo(lx, ly);
         ctx.lineTo(lx+10, ly-10);
@@ -924,18 +994,9 @@ function gameLoop() {
 window.addEventListener('keydown', e => {
     if (e.code === 'ArrowLeft') keys.ArrowLeft = true;
     if (e.code === 'ArrowRight') keys.ArrowRight = true;
-    if (e.code === 'ArrowUp') {
-        keys.ArrowUp = true;
-        if(gameState.running) e.preventDefault(); // 페이지 스크롤 방지
-    }
-    if (e.code === 'ArrowDown') {
-        keys.ArrowDown = true;
-        if(gameState.running) e.preventDefault(); // 페이지 스크롤 방지
-    }
-    if (e.code === 'Space') {
-        keys.Space = true;
-        if(gameState.running) e.preventDefault(); 
-    }
+    if (e.code === 'ArrowUp') { keys.ArrowUp = true; if(gameState.running) e.preventDefault(); }
+    if (e.code === 'ArrowDown') { keys.ArrowDown = true; if(gameState.running) e.preventDefault(); }
+    if (e.code === 'Space') { keys.Space = true; if(gameState.running) e.preventDefault(); }
 });
 
 window.addEventListener('keyup', e => {
@@ -948,15 +1009,14 @@ window.addEventListener('keyup', e => {
 
 
 /**
- * Input Handling - 마우스 드래그
+ * Input Handling - 마우스/터치 드래그
  */
-canvas.addEventListener('mousedown', (e) => {
+const handleStart = (clientX, clientY) => {
     if (!gameState.running || !player || !player.visible) return;
+    const coords = getCanvasCoords(clientX, clientY);
     
-    const coords = getCanvasCoords(e.clientX, e.clientY);
-    
-    // 우주선 근처를 클릭했는지 확인 (넓은 히트박스)
-    const hitPadding = 50;
+    // 히트박스 크게 설정
+    const hitPadding = 100;
     if (coords.x >= player.x - hitPadding && 
         coords.x <= player.x + player.width + hitPadding &&
         coords.y >= player.y - hitPadding && 
@@ -965,72 +1025,28 @@ canvas.addEventListener('mousedown', (e) => {
         isDragging = true;
         dragOffsetX = coords.x - (player.x + player.width / 2);
         dragOffsetY = coords.y - (player.y + player.height / 2);
-        e.preventDefault();
     }
-});
+};
 
-canvas.addEventListener('mousemove', (e) => {
+const handleMove = (clientX, clientY) => {
     if (!gameState.running || !isDragging || !player || !player.visible) return;
-    
-    const coords = getCanvasCoords(e.clientX, e.clientY);
-    
-    // 드래그 오프셋을 적용하여 부드러운 이동
+    const coords = getCanvasCoords(clientX, clientY);
     player.setPosition(coords.x - dragOffsetX, coords.y - dragOffsetY);
-    
-    e.preventDefault();
-});
+};
 
-canvas.addEventListener('mouseup', (e) => {
-    isDragging = false;
-});
+const handleEnd = () => { isDragging = false; };
 
-canvas.addEventListener('mouseleave', (e) => {
-    isDragging = false;
-});
+// Mouse
+canvas.addEventListener('mousedown', e => { handleStart(e.clientX, e.clientY); e.preventDefault(); });
+canvas.addEventListener('mousemove', e => { handleMove(e.clientX, e.clientY); e.preventDefault(); });
+canvas.addEventListener('mouseup', handleEnd);
+canvas.addEventListener('mouseleave', handleEnd);
 
-
-/**
- * Input Handling - 터치 (모바일/태블릿)
- */
-canvas.addEventListener('touchstart', (e) => {
-    if (!gameState.running || !player || !player.visible) return;
-    
-    const touch = e.touches[0];
-    const coords = getCanvasCoords(touch.clientX, touch.clientY);
-    
-    // 우주선 근처를 터치했는지 확인 (넓은 히트박스)
-    const hitPadding = 60; // 터치는 더 넓게
-    if (coords.x >= player.x - hitPadding && 
-        coords.x <= player.x + player.width + hitPadding &&
-        coords.y >= player.y - hitPadding - 50 && // 위쪽으로 더 넓게 (손가락이 가림)
-        coords.y <= player.y + player.height + hitPadding) {
-        
-        isDragging = true;
-        dragOffsetX = coords.x - (player.x + player.width / 2);
-        dragOffsetY = coords.y - (player.y + player.height / 2);
-        e.preventDefault();
-    }
-}, {passive: false});
-
-canvas.addEventListener('touchmove', (e) => {
-    if (!gameState.running || !isDragging || !player || !player.visible) return;
-    
-    const touch = e.touches[0];
-    const coords = getCanvasCoords(touch.clientX, touch.clientY);
-    
-    // 드래그 오프셋을 적용하여 부드러운 이동
-    player.setPosition(coords.x - dragOffsetX, coords.y - dragOffsetY);
-    
-    e.preventDefault();
-}, {passive: false});
-
-canvas.addEventListener('touchend', (e) => {
-    isDragging = false;
-});
-
-canvas.addEventListener('touchcancel', (e) => {
-    isDragging = false;
-});
+// Touch
+canvas.addEventListener('touchstart', e => { handleStart(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, {passive: false});
+canvas.addEventListener('touchmove', e => { handleMove(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, {passive: false});
+canvas.addEventListener('touchend', handleEnd);
+canvas.addEventListener('touchcancel', handleEnd);
 
 
 /**
@@ -1040,8 +1056,6 @@ document.getElementById('start-btn').addEventListener('click', () => {
     SoundManager.init();
     SoundManager.playStart();
     startScreen.classList.add('hidden');
-    // 게임 시작 시 전체화면 시도
-    toggleFullScreen();
     initGame();
 });
 
@@ -1049,12 +1063,10 @@ document.getElementById('restart-btn').addEventListener('click', () => {
     SoundManager.init();
     SoundManager.playStart();
     gameOverScreen.classList.add('hidden');
-    // 재시작 시에도 전체화면 시도
-    toggleFullScreen();
     initGame();
 });
 
-// Initial Starfield (Attract Mode)
+// Attract Mode
 stars = [];
 for(let i=0; i<50; i++) stars.push(new Star());
 function attractLoop() {
